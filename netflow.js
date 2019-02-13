@@ -1,5 +1,5 @@
 //main components
-var camera, scene, renderer;
+var camera, scene, renderer,controls;
 //system clock
 var clock = new THREE.Clock();
 //constant for getBase();
@@ -7,7 +7,6 @@ const s_radious=2;
 const s_height=1.2;
 //used in findCoordinate to set Speed
 const flow_speed =0.02;
-
 //size of cube for animate
 const cube_size = 0.15;
 
@@ -86,6 +85,8 @@ function initCamera(){
     camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 1000 );
     camera.position.y = 20;
     camera.position.z = 20;
+    controls = new THREE.OrbitControls( camera );
+    controls.update();
 }
 function initRenderer(){
     renderer = new THREE.WebGLRenderer({antialias: true} );
@@ -132,40 +133,67 @@ function init() {
     var controls = new THREE.OrbitControls(camera, renderer.domElement);
     
     //temp flow to be removed
-    animateFlow(-15,10,-10,0,60,134);
-    animateFlow(-15,-10,-10,0,60,134);
-    animateFlow(0,0,10,0,100,134);
-    animateFlow(10,0,15,-10,60,134);
-    animateFlow(10,0,20,0,60,134); 
-    animateFlow(0,-10,0,-20,60,134);   
+    /*  
+    */ 
 }
 function animate() {
     var timeElapsed = clock.getElapsedTime();
     //console.log(json_flow.toString());
+    controls.update();
     for (var key in json_flow) {
         //console.log(key);
         if (json_flow.hasOwnProperty(key)) {
             movePackets(key,timeElapsed);
         }
     }
-    if ((new Date().getTime() - timer) > 1000){
-        timer = new Date().getTime();
-        animateFlow(-15,10,-10,0,60,134);
-        animateFlow(-15,-10,-10,0,60,134);
-        animateFlow(0,0,10,0,60,134);
-        animateFlow(10,0,15,-10,60,134);
-        animateFlow(10,0,20,0,60,134); 
-        animateFlow(0,-10,0,-20,60,134);   
+    if ((new Date().getTime() - timer) > 9000){
+    timer = new Date().getTime();
+    animateFlow(0,0,10,0,100,134);
+    animateFlow(0,0,0,-10,100,134);
+    animateFlow(0,0,-10,0,100,134);
+    animateFlow(10,0,15,-10,60,134);
+    animateFlow(10,0,20,0,60,134);
+    animateFlow(10,0,15,10,60,134);
+    animateFlow(-10,0,-15,10,60,134);
+    animateFlow(-10,0,-20,0,60,134);
+    animateFlow(-10,0,-15,-10,60,134);
+
+    animateFlow(10,0,0,0,100,134);
+    animateFlow(0,-10,0,0,100,134);
+    animateFlow(-10,0,0,0,100,134);
+    animateFlow(15,-10,10,0,60,134);
+    animateFlow(20,0,10,0,60,134);
+    animateFlow(15,10,10,0,60,134);
+    animateFlow(-15,10,-10,0,60,134);
+    animateFlow(-20,0,-10,0,60,134);
+    animateFlow(-15,-10,-10,0,60,134);
     }
     requestAnimationFrame( animate );
     //animateFlow(10,0,0,0);
     renderer.render( scene, camera );
 }
+function getdistance(A,B){
+return Math.sqrt(Math.pow(A[0]-B[0])+Math.pow(A[1]-B[1]))
+}
+function isBoxRemovable(packet,packets){
+    var x1=packet.position.x
+    var x2=json_flow[packets]["x"]
+    var y1=packet.position.z
+    var y2=json_flow[packets]["y"]
+    ans = Math.sqrt(Math.pow(x1-x2)+Math.pow(y1-y2))
+
+    if(ans>s_radious/3){
+        return true;
+    }
+    else{
+        return false;
+    }
+}
 function movePackets(packets){
     console.log("packet_move_key-"+packets);
     var packet = scene.getObjectByName(packets);  
     var list = findCoordinate([packet.position.x,packet.position.z],[json_flow[packets]["x"],json_flow[packets]["y"]])
-    if(packet.position.x == json_flow[packets]["x"] && packet.position.z == json_flow[packets]["y"] ){
+    if(isBoxRemovable(packet,packets)){
         removePacket(packet);
         delete json_flow[packets];
     }
@@ -370,18 +398,17 @@ function movePipe(pipe, timeElapsed){
 function findCoordinate(A,B){
     var m = findSlope(A, B);
     var b = findIntercept(A, m);
+    var coordinates = [];
+        var i=0;
+        for (var x = A[0]; x <= B[0]; x=x+flow_speed) {
+        var y = m * x + b;
+        i++;
+        coordinates.push([x, y]);
+            if(i==2){
+                break;
+            }
+        }
 
-    var coordinates = [];
-    var coordinates = [];
-    var i=0;
-    for (var x = A[0]; x <= B[0]; x=x+flow_speed) {
-    var y = m * x + b;
-    i++;
-    coordinates.push([x, y]);
-    if(i==2){
-        break;
-    }
-    }
     return coordinates;
 }
 function removePacket(object) {
