@@ -7,10 +7,9 @@ const s_radious=2;
 const s_height=1.2;
 //used in findCoordinate to set Speed
 const flow_speed =0.02;
-//Pipe sizes with respect to speed 60,100,1000,else
-const pipe_size = [0.35,0.4,0.55,0.6]
+
 //size of cube for animate
-const cube_size = 0.2;
+const cube_size = 0.15;
 
 var timer;
 var json_resp ={
@@ -135,7 +134,7 @@ function init() {
     //temp flow to be removed
     animateFlow(-15,10,-10,0,60,134);
     animateFlow(-15,-10,-10,0,60,134);
-    animateFlow(0,0,10,0,60,134);
+    animateFlow(0,0,10,0,100,134);
     animateFlow(10,0,15,-10,60,134);
     animateFlow(10,0,20,0,60,134); 
     animateFlow(0,-10,0,-20,60,134);   
@@ -190,9 +189,10 @@ function animateFlow(position_x,position_y,parent_x,parent_y,pipe,num_packets){
     var pgeometry = new THREE.BoxGeometry( 0.2, 0.2, 0.2 );
     var pmaterial = new THREE.MeshNormalMaterial();
     var pmesh = new THREE.Mesh( pgeometry, pmaterial );
-    pmesh.position.x = position_x;
-    pmesh.position.y = 0;
-    pmesh.position.z = position_y;
+    pipe_rad = getPipeRadious(pipe);
+    pmesh.position.x = position_x+getCubeRandLocation(pipe_rad);
+    pmesh.position.y = 0+getCubeRandLocation(pipe_rad);
+    pmesh.position.z = position_y+getCubeRandLocation(pipe_rad);
     scene.add(pmesh);
     pmesh.name = generateUUID();
     json_flow[pmesh.name]={};
@@ -416,14 +416,15 @@ function generateUUID() {
         return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
     });
 }
-function getCubeRandLocation(pipe_width){
-    half = cube_size/2;
-    var max = pipe_width-half;
-    var min = -pipe_width-half;
+function getCubeRandLocation(pipe_rad){
+    var max = (pipe_rad/2);
+    var min = -(pipe_rad/2);
     console.log(min);
     return Math.random() * (max - min) + min; 
 }
 function getPipeRadious(speed){
+    //Pipe sizes with respect to speed 60,100,1000,else
+    var pipe_size = [0.35,0.4,0.55,0.6];
     var radious = 0;
     if(speed == 60){
         radious = pipe_size[0];
