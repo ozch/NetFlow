@@ -2,13 +2,16 @@
 var camera, scene, renderer;
 //system clock
 var clock = new THREE.Clock();
-var nameConvec = 0;
-//radiou of device base
+//constant for getBase();
 const s_radious=2;
-//height of device base
 const s_height=1.2;
-//for setting flow speed of packets
+//used in findCoordinate to set Speed
 const flow_speed =0.02;
+//Pipe sizes with respect to speed 60,100,1000,else
+const pipe_size = [0.35,0.4,0.55,0.6]
+//size of cube for animate
+const cube_size = 0.2;
+
 var timer;
 var json_resp ={
     "1":{
@@ -80,27 +83,38 @@ var json_flow = {};
 
 init();
 animate();
-
-function init() {
-    //renderer init
+function initCamera(){
+    camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 1000 );
+    camera.position.y = 20;
+    camera.position.z = 20;
+}
+function initRenderer(){
     renderer = new THREE.WebGLRenderer({antialias: true} );
     renderer.shadowMap.enabled = true;
 	renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setClearColor('rgb(172, 170, 170)');
-    document.getElementById('webgl').appendChild(renderer.domElement);
-    //camera init
-    camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 1000 );
-    camera.position.y = 20;
-    camera.position.z = 20;
-    //Scene init
+    document.getElementById('webgl').appendChild(renderer.domElement);   
+}
+function initScene(){
     scene = new THREE.Scene();
-    //light init
+}
+function initLights(){
     var light_amb = new THREE.AmbientLight(0xffffff, 0.5);
     var light_point = new THREE.PointLight(0xffffff, 0.5);
     scene.add(light_amb);
     scene.add(light_point);
-    
-   
+}
+function initTimer(){
+    timer = new Date().getTime();
+}
+function init() {
+    //Initiating requirements
+    initRenderer();
+    initCamera();
+    initScene();
+    initLights();
+    initTimer();
+    //temp device too be removed
     addRouter(0,0);
         addSwitch(10,0,0,0); 
             addDevice(15,-10,10,0);
@@ -113,27 +127,21 @@ function init() {
     addRouter(0,-10);
         drawRouterPipe(0,0,0,-10);
            addServer(0,-20,0,-10);
-   
-    timer = new Date().getTime();
+
     renderer.setSize( window.innerWidth, window.innerHeight );
     document.body.appendChild( renderer.domElement );
     var controls = new THREE.OrbitControls(camera, renderer.domElement);
+    
+    //temp flow to be removed
     animateFlow(-15,10,-10,0,60,134);
     animateFlow(-15,-10,-10,0,60,134);
     animateFlow(0,0,10,0,60,134);
     animateFlow(10,0,15,-10,60,134);
     animateFlow(10,0,20,0,60,134); 
     animateFlow(0,-10,0,-20,60,134);   
-
-	//update(renderer, scene, camera, controls, clock)
-    
-
 }
 function animate() {
     var timeElapsed = clock.getElapsedTime();
-    for (var i=1; i <= nameConvec;i++){
-        movePipe('pipe-'+i, timeElapsed);
-    }
     //console.log(json_flow.toString());
     for (var key in json_flow) {
         //console.log(key);
@@ -149,17 +157,15 @@ function animate() {
         animateFlow(10,0,15,-10,60,134);
         animateFlow(10,0,20,0,60,134); 
         animateFlow(0,-10,0,-20,60,134);   
-
     }
     requestAnimationFrame( animate );
     //animateFlow(10,0,0,0);
     renderer.render( scene, camera );
 }
-function movePackets(packets, timeElapsed){
+function movePackets(packets){
     console.log("packet_move_key-"+packets);
     var packet = scene.getObjectByName(packets);  
     var list = findCoordinate([packet.position.x,packet.position.z],[json_flow[packets]["x"],json_flow[packets]["y"]])
-
     if(packet.position.x == json_flow[packets]["x"] && packet.position.z == json_flow[packets]["y"] ){
         removePacket(packet);
         delete json_flow[packets];
@@ -181,35 +187,13 @@ function movePackets(packets, timeElapsed){
 
 //add color option
 function animateFlow(position_x,position_y,parent_x,parent_y,pipe,num_packets){
-   // var pmesh;
-   // if(num_packets > 10 ){
-     /*   var geometry = new THREE.BoxBufferGeometry( 0.2,0.2, 0.2 );
-        var material = new THREE.MeshBasicMaterial( {color: 0x00ff00} );
-        var cubeA = new THREE.Mesh( geometry, material );
-        cubeA.position.set( position_x-0.4, -0.1, position_y );
-        var cubeB = new THREE.Mesh( geometry, material );
-        cubeB.position.set( position_x+0.4, +0.1, position_y-0.6 );
-        var cubeC = new THREE.Mesh( geometry, material );
-        cubeC.position.set( position_x+0.6, +0.3, position_y+0.6 );
-        var cubeD = new THREE.Mesh( geometry, material );
-        cubeD.position.set( position_x+0.7, -0.2, position_y-0.9 );
-        var pmesh = new THREE.Group();
-        pmesh.add( cubeA );
-        pmesh.add( cubeB );
-        pmesh.add( cubeC );
-        pmesh.add( cubeD );
-        scene.add( pmesh );
-   }*/
-  //  else{
-        var pgeometry = new THREE.BoxGeometry( 0.3, 0.3, 0.3 );
-        var pmaterial = new THREE.MeshNormalMaterial();
-        var pmesh = new THREE.Mesh( pgeometry, pmaterial );
-        pmesh.position.x = position_x;
-        pmesh.position.y = 0;
-        pmesh.position.z = position_y;
-        scene.add(pmesh);
-   // }
-    
+    var pgeometry = new THREE.BoxGeometry( 0.2, 0.2, 0.2 );
+    var pmaterial = new THREE.MeshNormalMaterial();
+    var pmesh = new THREE.Mesh( pgeometry, pmaterial );
+    pmesh.position.x = position_x;
+    pmesh.position.y = 0;
+    pmesh.position.z = position_y;
+    scene.add(pmesh);
     pmesh.name = generateUUID();
     json_flow[pmesh.name]={};
     json_flow[pmesh.name]["x"]=parent_x;
@@ -217,57 +201,36 @@ function animateFlow(position_x,position_y,parent_x,parent_y,pipe,num_packets){
     json_flow[pmesh.name]["color"]="blue";
     json_flow[pmesh.name]["packets"]=num_packets; 
 }
-function addRouter(position_x,position_y){
-    //creating base 
+function getBase(position_x,position_y){
     var temp_geometry =new THREE.CylinderGeometry( s_radious, s_radious, s_height, 64 );
-    var texture = new THREE.TextureLoader().load( '/assets/textures/concrete.JPG' );
+    var texture = new THREE.TextureLoader().load( '/assets/textures/wood.JPG' );
     var temp_material  = new THREE.MeshBasicMaterial( { map: texture } );
     temp_mesh = new THREE.Mesh( temp_geometry, temp_material );
     temp_mesh.position.x = position_x;
     temp_mesh.position.y = 0;
     temp_mesh.position.z = position_y;
-    scene.add( temp_mesh );
-    //adding model switch
-    modelRouter(position_x,position_y);
-    //#28292D
+    return temp_mesh;
 }
-/*
-    leftSide,        // Left side
-    rightSide,       // Right side
-    topSide,         // Top side
-    bottomSide,      // Bottom side
-    frontSide,       // Front side
-    backSide         // Back side
-*/
+function addRouter(position_x,position_y){
+    var base = getBase(position_x,position_y);
+    var router = modelRouter(position_x,position_y);
+    var group = new THREE.Group();
+    group.add(base);
+    group.add(router);
+    scene.add( group );
+}
 
 function addSwitch(position_x,position_y,parent_x,parent_y){
-    //creating base 
-    temp_geometry =new THREE.CylinderGeometry( s_radious, s_radious, s_height, 64 );
-    var texture = new THREE.TextureLoader().load( '/assets/textures/concrete.JPG' );
-    temp_material  = new THREE.MeshBasicMaterial( { map: texture } );
-    temp_mesh = new THREE.Mesh( temp_geometry, temp_material );
-    temp_mesh.position.x = position_x;
-    temp_mesh.position.y = 0;
-    temp_mesh.position.z = position_y;
-    scene.add( temp_mesh );
-    //adding model switch
-    modelSwitch(position_x,position_y);
-    //drawing pipe between parent and child
-    nameConvec ++;
-    drawPipe(new THREE.Vector3(position_x,0,position_y),new THREE.Vector3(parent_x,0,parent_y),scene,1000, 'pipe-'+nameConvec);
-    //renderer.render( scene, camera );
+    var base = getBase(position_x,position_y);
+    var switc = modelSwitch(position_x,position_y);
+    var group = new THREE.Group();
+    group.add(base);
+    group.add(switc);
+    scene.add(group);
+    drawPipe(new THREE.Vector3(position_x,0,position_y),new THREE.Vector3(parent_x,0,parent_y),scene,1000);
 }
 function addDevice(position_x,position_y,parent_x,parent_y){
-    //creating base 
-    temp_geometry =new THREE.CylinderGeometry( s_radious, s_radious, s_height, 64 );
-    var texture = new THREE.TextureLoader().load( '/assets/textures/concrete.JPG' );
-    temp_material  = new THREE.MeshBasicMaterial( { map: texture } );
-    temp_mesh = new THREE.Mesh( temp_geometry, temp_material );
-    temp_mesh.position.x = position_x;
-    temp_mesh.position.y = 0;
-    temp_mesh.position.z = position_y;
-    scene.add( temp_mesh );
-    //adding model computer 
+    var base = getBase(position_x,position_y);
     var mtlLoader = new THREE.MTLLoader();
     mtlLoader.setBaseUrl( '/assets/models/' );
     mtlLoader.setPath( '/assets/models/' );
@@ -278,30 +241,20 @@ function addDevice(position_x,position_y,parent_x,parent_y){
     objLoader.setMaterials( materials );
     objLoader.setPath( '/assets/models/' );
     objLoader.load( 'PCX.obj', function ( object ) {
-
         object.position.x = position_x;
-        object.position.y = -0.85;
+        object.position.y = -1;
         object.position.z = position_y-1;
-        scene.add( object );
-
+        var group = new THREE.Group();
+        group.add(base);
+        group.add(object);
+        scene.add(group);
     } );
     }); 
-    //creating texture
-    //drawing pipe between parent and child
-    nameConvec ++;
-    drawPipe(new THREE.Vector3(position_x,0,position_y),new THREE.Vector3(parent_x,0,parent_y),scene,100,'pipe-'+nameConvec);
-    //renderer.render( scene, camera );
+    drawPipe(new THREE.Vector3(position_x,0,position_y),new THREE.Vector3(parent_x,0,parent_y),scene,100);
 }
 function addServer(position_x,position_y,parent_x,parent_y){
     //creating base 
-    temp_geometry =new THREE.CylinderGeometry( s_radious, s_radious, s_height, 64 );
-    var texture = new THREE.TextureLoader().load( '/assets/textures/concrete.JPG' );
-    temp_material  = new THREE.MeshBasicMaterial( { map: texture } );
-    temp_mesh = new THREE.Mesh( temp_geometry, temp_material );
-    temp_mesh.position.x = position_x;
-    temp_mesh.position.y = 0;
-    temp_mesh.position.z = position_y;
-    scene.add( temp_mesh );
+    var base = getBase(position_x,position_y);
     //adding model server
     var mtlLoader = new THREE.MTLLoader();
     mtlLoader.setBaseUrl( '/assets/models/' );
@@ -312,20 +265,18 @@ function addServer(position_x,position_y,parent_x,parent_y){
     var objLoader = new THREE.OBJLoader();
     objLoader.setMaterials( materials );
     objLoader.setPath( '/assets/models/' );
-    objLoader.load( 'Server.obj', function ( object ) {
-
+    objLoader.load( 'Server.obj', function ( object ){
         object.position.x = position_x;
-        object.position.y = +0.85;
-        object.position.z = position_y+0.75;
+        object.position.y = 0.5;
+        object.position.z = position_y;
         object.rotation.y = Math.PI *1.2;
-        scene.add( object );
-
+        var group = new THREE.Group()
+        group.add(base);
+        group.add(object);
+        scene.add(group);
     } );
     }); 
-    //drawing pipe between parent and child
-    nameConvec ++;
-    drawPipe(new THREE.Vector3(position_x,0,position_y),new THREE.Vector3(parent_x,0,parent_y),scene,1000,'pipe-'+nameConvec);
-    //renderer.render( scene, camera );
+    drawPipe(new THREE.Vector3(position_x,0,position_y),new THREE.Vector3(parent_x,0,parent_y),scene,1000);
 }
 function resize(renderer, scene, camera, controls, clock) {
     const canvas = renderer.domElement;
@@ -339,52 +290,21 @@ function resize(renderer, scene, camera, controls, clock) {
       return;
   }
 
-function drawPipe(vstart, vend,scene,speed, name){
-    var radious = 0
-    if(speed == 60){
-        radious = 0.35
-    }
-    if(speed == 100){
-        radious = 0.4
-    }
-    else if (speed == 1000){
-        radious = 0.55;
-    }
-    else{
-        radious = 0.6
-    }
+function drawPipe(vstart, vend,scene,speed){
+    var radious = getPipeRadious(speed);
     pipe_position_x = (vstart.x+vend.x)/2
     pipe_position_z = (vstart.z+vend.z)/2
     var HALF_PI = Math.PI * .5;
     var distance = vstart.distanceTo(vend);
     var position  = vend.clone().add(vstart).divideScalar(2);
-        // Defining arrow texture
     const ctx = document.createElement("canvas").getContext("2d");
     ctx.canvas.width = 64;
     ctx.canvas.height = 64;
-
-    ctx.fillStyle = "rgba(0,0,255,0.5)";
+    ctx.fillStyle = "rgba(240,227,218,0.5)";
     ctx.fillRect(0, 0, 64, 64);
-
-    ctx.translate(32, 32);
-    ctx.rotate(Math.PI * .5);
-    ctx.fillStyle = "rgb(23, 23, 23)";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.font = "48px sans-serif";
-    ctx.fillText("-", 0, 0);
-
-        const radiusTop = 0.3;
-    const radiusBottom = 0.3;
-    const height = 1;
-    const radiusSegments = 20;
-    const heightSegments = 2;
-    const openEnded = true;
-
     const texture = new THREE.CanvasTexture(ctx.canvas);
     texture.wrapS = THREE.RepeatWrapping;
     texture.wrapT = THREE.RepeatWrapping;
-
     texture.repeat.x = 5;
     texture.repeat.y = 12;
     var material = new THREE.MeshLambertMaterial({
@@ -405,7 +325,6 @@ function drawPipe(vstart, vend,scene,speed, name){
     temp_mesh.position.z=pipe_position_z;
     temp_mesh.position.y=0;
     scene.add(temp_mesh);
-    temp_mesh.name= name;
     }
 function modelRouter(position_x,position_y){
     var cubeMaterialArray = [];
@@ -419,9 +338,9 @@ function modelRouter(position_x,position_y){
     var cubeGeometry = new THREE.BoxGeometry( 2.5, 1, 2);
     mesh_cube = new THREE.Mesh( cubeGeometry, cubeMaterials );
     mesh_cube.position.x = position_x;
-    mesh_cube.position.y = 1.2;
+    mesh_cube.position.y = 1.1;
     mesh_cube.position.z = position_y;
-    scene.add(mesh_cube);
+    return mesh_cube;
 }
 function modelSwitch(position_x,position_y){
     var cubeMaterialArray = [];
@@ -437,11 +356,10 @@ function modelSwitch(position_x,position_y){
     mesh_cube.position.x = position_x;
     mesh_cube.position.y = 0.8;
     mesh_cube.position.z = position_y;
-    scene.add(mesh_cube);
+    return mesh_cube;
 }
 function drawRouterPipe(position_x,position_y,parent_x,parent_y){
-    nameConvec++;
-    drawPipe(new THREE.Vector3(position_x,0,position_y),new THREE.Vector3(parent_x,0,parent_y),scene,1000,'pipe-'+nameConvec);
+    drawPipe(new THREE.Vector3(position_x,0,position_y),new THREE.Vector3(parent_x,0,parent_y),scene,1000);
 }
 
 function movePipe(pipe, timeElapsed){
@@ -464,7 +382,6 @@ function findCoordinate(A,B){
         break;
     }
     }
-    //console.log(coordinates);
     return coordinates;
 }
 function removePacket(object) {
@@ -488,10 +405,10 @@ function findIntercept(point, slope) {
     }
     return point[1] - slope * point[0];
 }
-function generateUUID() { // Public Domain/MIT
+function generateUUID() { 
     var d = new Date().getTime();
     if (typeof performance !== 'undefined' && typeof performance.now === 'function'){
-        d += performance.now(); //use high-precision timer if available
+        d += performance.now();
     }
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
         var r = (d + Math.random() * 16) % 16 | 0;
@@ -499,3 +416,35 @@ function generateUUID() { // Public Domain/MIT
         return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
     });
 }
+function getCubeRandLocation(pipe_width){
+    half = cube_size/2;
+    var max = pipe_width-half;
+    var min = -pipe_width-half;
+    console.log(min);
+    return Math.random() * (max - min) + min; 
+}
+function getPipeRadious(speed){
+    var radious = 0;
+    if(speed == 60){
+        radious = pipe_size[0];
+    }
+    if(speed == 100){
+        radious = pipe_size[1];
+    }
+    else if (speed == 1000){
+        radious = pipe_size[2];
+    }
+    else{
+        radious = pipe_size[3];
+    }
+    return radious;
+}
+
+/*
+    leftSide,        // Left side
+    rightSide,       // Right side
+    topSide,         // Top side
+    bottomSide,      // Bottom side
+    frontSide,       // Front side
+    backSide         // Back side
+*/
