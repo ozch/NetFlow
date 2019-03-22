@@ -124,9 +124,7 @@ function init() {
             addDevice(-15,10,-10,0);
             addDevice(-20,0,-10,0);
             addDevice(-15,-10,-10,0);
-    addRouter(0,-10);
-        drawRouterPipe(0,0,0,-10);
-           addServer(0,-20,0,-10);
+            addServer(0,-10,0,0);
 
     renderer.setSize( window.innerWidth, window.innerHeight );
     document.body.appendChild( renderer.domElement );
@@ -146,7 +144,7 @@ function animate() {
             movePackets(key,timeElapsed);
         }
     }
-    if ((new Date().getTime() - timer) > 9000){
+    if ((new Date().getTime() - timer) > 400){
     timer = new Date().getTime();
     animateFlow(0,0,10,0,100,134);
     animateFlow(0,0,0,-10,100,134);
@@ -157,7 +155,6 @@ function animate() {
     animateFlow(-10,0,-15,10,60,134);
     animateFlow(-10,0,-20,0,60,134);
     animateFlow(-10,0,-15,-10,60,134);
-
     animateFlow(10,0,0,0,100,134);
     animateFlow(0,-10,0,0,100,134);
     animateFlow(-10,0,0,0,100,134);
@@ -190,7 +187,7 @@ function isBoxRemovable(packet,packets){
     }
 }
 function movePackets(packets){
-    console.log("packet_move_key-"+packets);
+    //console.log("packet_move_key-"+packets);
     var packet = scene.getObjectByName(packets);  
     var list = findCoordinate([packet.position.x,packet.position.z],[json_flow[packets]["x"],json_flow[packets]["y"]])
     if(isBoxRemovable(packet,packets)){
@@ -412,7 +409,7 @@ function findCoordinate(A,B){
     return coordinates;
 }
 function removePacket(object) {
-    console.log("packet_remove_key-"+object);
+    //console.log("packet_remove_key-"+object);
     var selectedObject = scene.getObjectByName(object.name);
     scene.remove( selectedObject );
 }
@@ -446,7 +443,7 @@ function generateUUID() {
 function getCubeRandLocation(pipe_rad){
     var max = (pipe_rad/2);
     var min = -(pipe_rad/2);
-    console.log(min);
+    //console.log(min);
     return Math.random() * (max - min) + min; 
 }
 function getPipeRadious(speed){
