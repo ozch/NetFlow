@@ -6,10 +6,9 @@ var clock = new THREE.Clock();
 const s_radious=2;
 const s_height=1.2;
 //used in findCoordinate to set Speed
-const flow_speed =0.02;
+const flow_speed =0.2;
 //size of cube for animate
 const cube_size = 0.15;
-
 var timer;
 var json_resp ={
     "1":{
@@ -61,19 +60,6 @@ var json_resp ={
                 ]
             }
         ]
-    },
-    "2":{
-        "type":"router",
-        "mac" : "A1AACA4E3149",
-        "ip" : ["192.168.3.1","192.168.4.1"],
-        "child":[
-            {
-            "type":"server",
-            "mac" : "8FA2765053F9",
-            "speed": "100",
-            "ip" : "192.168.4.2"
-            }
-        ]
     }
 };
 //holds all the packet flow information which is underway
@@ -114,25 +100,12 @@ function init() {
     initScene();
     initLights();
     initTimer();
-    //temp device too be removed
-    addRouter(0,0);
-        addSwitch(10,0,0,0); 
-            addDevice(15,-10,10,0);
-            addDevice(20,0,10,0);
-            addDevice(15,10,10,0);
-        addSwitch(-10,0,0,0);
-            addDevice(-15,10,-10,0);
-            addDevice(-20,0,-10,0);
-            addDevice(-15,-10,-10,0);
-            addServer(0,-10,0,0);
-
+    assignPositions();
+    drawDevices();
     renderer.setSize( window.innerWidth, window.innerHeight );
     document.body.appendChild( renderer.domElement );
     var controls = new THREE.OrbitControls(camera, renderer.domElement);
-    
-    //temp flow to be removed
-    /*  
-    */ 
+
 }
 function animate() {
     var timeElapsed = clock.getElapsedTime();
@@ -146,40 +119,23 @@ function animate() {
     }
     if ((new Date().getTime() - timer) > 400){
     timer = new Date().getTime();
-    animateFlow(0,0,10,0,100,134);
-    animateFlow(0,0,0,-10,100,134);
-    animateFlow(0,0,-10,0,100,134);
-    animateFlow(10,0,15,-10,60,134);
-    animateFlow(10,0,20,0,60,134);
-    animateFlow(10,0,15,10,60,134);
-    animateFlow(-10,0,-15,10,60,134);
-    animateFlow(-10,0,-20,0,60,134);
-    animateFlow(-10,0,-15,-10,60,134);
-    animateFlow(10,0,0,0,100,134);
-    animateFlow(0,-10,0,0,100,134);
-    animateFlow(-10,0,0,0,100,134);
-    animateFlow(15,-10,10,0,60,134);
-    animateFlow(20,0,10,0,60,134);
-    animateFlow(15,10,10,0,60,134);
-    animateFlow(-15,10,-10,0,60,134);
-    animateFlow(-20,0,-10,0,60,134);
-    animateFlow(-15,-10,-10,0,60,134);
     }
     requestAnimationFrame( animate );
-    //animateFlow(10,0,0,0);
+    
     renderer.render( scene, camera );
 }
 function getdistance(A,B){
-return Math.sqrt(Math.pow(A[0]-B[0])+Math.pow(A[1]-B[1]))
+return Math.sqrt(Math.pow(A[0]-B[0],2)+Math.pow(A[1]-B[1],2))
 }
 function isBoxRemovable(packet,packets){
     var x1=packet.position.x
     var x2=json_flow[packets]["x"]
+
     var y1=packet.position.z
     var y2=json_flow[packets]["y"]
-    ans = Math.sqrt(Math.pow(x1-x2)+Math.pow(y1-y2))
-
-    if(ans>s_radious/3){
+    ans = getdistance([x1,y1],[x2,y2]);
+    console.log(ans);
+    if(ans<s_radious/3){
         return true;
     }
     else{
@@ -196,8 +152,8 @@ function movePackets(packets){
     }
     else{
         try {        
-            packet.position.x = list[1][0];
-            packet.position.z = list[1][1]; 
+            packet.position.x = list[0];
+            packet.position.z = list[1]; 
             packet.rotation.x += 0.01;
             packet.rotation.y += 0.01;
             packet.rotation.z += 0.01;
@@ -393,20 +349,15 @@ function movePipe(pipe, timeElapsed){
 }
 
 function findCoordinate(A,B){
-    var m = findSlope(A, B);
-    var b = findIntercept(A, m);
-    var coordinates = [];
-        var i=0;
-        for (var x = A[0]; x <= B[0]; x=x+flow_speed) {
-        var y = m * x + b;
-        i++;
-        coordinates.push([x, y]);
-            if(i==2){
-                break;
-            }
-        }
-
+    var pointA = new THREE.Vector3(A[0],A[1],0);
+    var pointB = new THREE.Vector3(B[0],B[1],0);
+    var next_point = getPointInBetweenByLen(pointA, pointB, flow_speed);
+    var coordinates = [next_point.x,next_point.y];
     return coordinates;
+}
+function getPointInBetweenByLen(pointA, pointB, length) {
+    var dir = pointB.clone().sub(pointA).normalize().multiplyScalar(length);
+    return pointA.clone().add(dir);    
 }
 function removePacket(object) {
     //console.log("packet_remove_key-"+object);
@@ -473,3 +424,110 @@ function getPipeRadious(speed){
     frontSide,       // Front side
     backSide         // Back side
 */
+function drawDevices() {
+    let previousRouter;
+    for (let key in json_resp) {
+        let router = json_resp[key];
+        addRouter(router.x, router.y);
+        drawRouterChilds(router);
+        if (previousRouter) {
+            drawRouterPipe(previousRouter.x, previousRouter.y, router.x, router.y);
+        }
+        previousRouter = router;
+    }
+}
+function drawRouterChilds(router) {
+    router.child.forEach(function (sw) {
+        if (sw.type == "switch") {
+            addSwitch(sw.x, sw.y, router.x, router.y);
+            drawSwitchChilds(sw);
+        } else {
+            addServer(sw.x, sw.y, router.x, router.y);
+        }
+    });
+}
+
+function drawSwitchChilds(sw) {
+    sw.child.forEach(function (c) {
+        addDevice(c.x, c.y, sw.x, sw.y);
+    });
+}
+
+var routerAssignment;
+var routerSwitches = {};
+var switchDevices = {}
+function assignPositions() {
+    for (let key in json_resp) {
+        let router = json_resp[key];
+        assignRouterPosition(router);
+        assignPositionsToRouterChilds(router);
+    }
+}
+
+function assignRouterPosition(router) {
+    if (!routerAssignment) {
+        routerAssignment = {x: 0, y: 70 * Math.floor(Object.keys(json_resp).length / 2)};
+    } else {
+        routerAssignment.y -= 70;
+    }
+    Object.assign(router, routerAssignment);
+}
+
+function assignPositionsToRouterChilds(router) {
+    const switchCount = getRouterSwitchCount(router);
+    const potentialIncrement = 240 / switchCount;
+    let currentAngle  = 330;
+    router.child.forEach(function (sw) {
+        if (sw.type == "switch") {
+            Object.assign(sw, getPointByDegree(currentAngle, 30, router.x, router.y));
+            assignPositionsToSwitchDevices(sw, currentAngle);
+            currentAngle = (currentAngle + potentialIncrement) % 360;
+            if (currentAngle > 60 && currentAngle < 120) {
+                currentAngle = 120;
+            } else if (currentAngle > 240 && currentAngle < 300) {
+                currentAngle = 300;
+            }
+        } else {
+            // we assume that server is connected to only one router and there is only 1 server
+            assignRouterPosition(sw);
+        }
+    });
+}
+
+function assignPositionsToSwitchDevices(sw, switchAngleToRouter) {
+    const angleDifference = 30;
+    const accomodateableDevices = 11;
+    const angle = [switchAngleToRouter, switchAngleToRouter - angleDifference];
+
+    let pipeLength = 10;
+    let devicesAdded = 0;
+    // add one device to one side to other on other
+    sw.child.forEach(function (device, index) {
+        const angleIndex = index % 2;
+        const angleToUse = angle[angleIndex];
+        Object.assign(device,  getPointByDegree(angleToUse, pipeLength, sw.x, sw.y));
+        angleIndex ? angle[angleIndex] -= angleDifference :  angle[angleIndex] += angleDifference;
+        devicesAdded++;
+        if (devicesAdded == accomodateableDevices) {
+            devicesAdded = 0;
+            angle[0] = switchAngleToRouter + 15;
+            angle[1] = switchAngleToRouter - 15;
+            pipeLength = 15;
+        }
+    });
+}
+function getRouterSwitchCount(router) {
+    return router.child.filter(function (sw) {
+       return sw.type == "switch";
+    }).length;
+}
+
+function getPointByDegree(degree, radius, cx, cy) {
+    const rad = degree * (Math.PI / 180);
+    const point =  {
+        x: cx + (radius * Math.cos(rad)),
+        y: cy + (radius * Math.sin(rad))
+    };
+    return point;
+}
+
