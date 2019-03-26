@@ -1,10 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="d01e2ac7-57e2-4c55-9c70-2bcdb0384ac2" name="Default Changelist" comment="merged two local project for better visualization and added camera view functionality">
-      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/netflow.js" beforeDir="false" afterPath="$PROJECT_DIR$/netflow.js" afterDir="false" />
-    </list>
+    <list default="true" id="d01e2ac7-57e2-4c55-9c70-2bcdb0384ac2" name="Default Changelist" comment="merged two local project for better visualization and added camera view functionality" />
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -17,7 +14,7 @@
         <entry file="file://$PROJECT_DIR$/netflow.js">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="258">
-              <caret line="119" column="50" selection-start-line="119" selection-start-column="40" selection-end-line="119" selection-end-column="50" />
+              <caret line="105" column="50" selection-start-line="105" selection-start-column="50" selection-end-line="105" selection-end-column="50" />
             </state>
           </provider>
         </entry>
@@ -80,6 +77,7 @@
       <workItem from="1553275019247" duration="1243000" />
       <workItem from="1553277764083" duration="105000" />
       <workItem from="1553325083549" duration="1190000" />
+      <workItem from="1553337631442" duration="117000" />
     </task>
     <task id="LOCAL-00001" summary="merged two local project for better visualization and added camera view functionality">
       <created>1553276108301</created>
@@ -92,12 +90,13 @@
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="2538000" />
+    <option name="totallyTimeSpent" value="2655000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="-8" y="-8" width="1382" height="744" extended-state="6" />
+    <editor active="true" />
     <layout>
-      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.16565809" />
+      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.16792738" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info id="Favorites" order="2" side_tool="true" />
       <window_info anchor="bottom" id="Message" order="0" />
@@ -131,7 +130,7 @@
     <entry file="file://$PROJECT_DIR$/netflow.js">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="258">
-          <caret line="119" column="50" selection-start-line="119" selection-start-column="40" selection-end-line="119" selection-end-column="50" />
+          <caret line="105" column="50" selection-start-line="105" selection-start-column="50" selection-end-line="105" selection-end-column="50" />
         </state>
       </provider>
     </entry>

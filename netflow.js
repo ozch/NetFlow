@@ -35,30 +35,31 @@ var json_resp ={
                         "mac" : "EBA6D7E41A6",
                         "speed":"60",
                         "ip" : "192.168.1.4"
-                    }
-                ]
-            },
-            {
-                "type":"switch",
-                "mac" : "484AD7233FE7",
-                "speed":"1000",
-                "ip" : "192.168.2.2",
-                "child":
-                [
-                    {
-                        "type":"device",
-                        "mac" : "DBA6D7E41A35",
-                        "speed":"60",
-                        "ip" : "192.168.2.3"
                     },
                     {
-                        "type":"device",
-                        "mac" : "DBA6D7E41A6",
-                        "speed":"60",
-                        "ip" : "192.168.2.4"
+                        "type":"switch",
+                        "mac" : "484AD7233FE7",
+                        "speed":"1000",
+                        "ip" : "192.168.2.2",
+                        "child":
+                        [
+                            {
+                                "type":"device",
+                                "mac" : "DBA6D7E41A35",
+                                "speed":"60",
+                                "ip" : "192.168.2.3"
+                            },
+                            {
+                                "type":"device",
+                                "mac" : "DBA6D7E41A6",
+                                "speed":"60",
+                                "ip" : "192.168.2.4"
+                            }
+                        ]
                     }
                 ]
             }
+            
         ]
     }
 };
@@ -488,7 +489,7 @@ function assignPositionsToRouterChilds(router) {
                 currentAngle = 300;
             }
         } else {
-            // we assume that server is connected to only one router and there is only 1 server
+            // we assume that server or devices is connected to only one router and there is only 1 server
             assignRouterPosition(sw);
         }
     });
