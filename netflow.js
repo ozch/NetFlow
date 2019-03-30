@@ -18,6 +18,18 @@ var json_resp ={
         "ip" : ["192.168.1.1","192.168.2.1","192.168.3.1"],
         "child":[
             {
+                "type":"server",
+                "mac" : "EBA6D7E41A34",
+                "speed":"1000",
+                "ip" : "192.168.1.2",
+            },
+            {
+                "type":"device",
+                "mac" : "EBA6D7E41A34",
+                "speed":"1000",
+                "ip" : "192.168.1.2",
+            },
+            {
                 "type":"switch",
                 "mac" : "EBA6D7E41A34",
                 "speed":"1000",
@@ -60,6 +72,27 @@ var json_resp ={
                 ]
             }
             
+        ]
+    },
+
+    "2":{
+        "type":"router",
+        "mac" : "BA03ADEAE2A0",
+        "speed":"1000",
+        "ip" : ["192.168.1.1","192.168.2.1","192.168.3.1"],
+        "child":[
+            {
+                "type":"server",
+                "mac" : "EBA6D7E41A34",
+                "speed":"1000",
+                "ip" : "192.168.1.2",
+            },
+            {
+                "type":"device",
+                "mac" : "EBA6D7E41A34",
+                "speed":"1000",
+                "ip" : "192.168.1.2",
+            }
         ]
     }
 };
@@ -450,7 +483,12 @@ function drawRouterChilds(router) {
 
 function drawSwitchChilds(sw) {
     sw.child.forEach(function (c) {
-        addDevice(c.x, c.y, sw.x, sw.y);
+        if (c.type == "switch") {
+            addSwitch(c.x, c.y, sw.x, sw.y);
+            drawSwitchChilds(c);
+        } else {
+            addDevice(c.x, c.y, sw.x, sw.y);
+        }
     });
 }
 
@@ -475,22 +513,18 @@ function assignRouterPosition(router) {
 }
 
 function assignPositionsToRouterChilds(router) {
-    const switchCount = getRouterSwitchCount(router);
-    const potentialIncrement = 240 / switchCount;
+    const potentialIncrement = 240 / router.child.length;
     let currentAngle  = 330;
     router.child.forEach(function (sw) {
+        Object.assign(sw, getPointByDegree(currentAngle, 30, router.x, router.y));
         if (sw.type == "switch") {
-            Object.assign(sw, getPointByDegree(currentAngle, 30, router.x, router.y));
-            assignPositionsToSwitchDevices(sw, currentAngle);
-            currentAngle = (currentAngle + potentialIncrement) % 360;
-            if (currentAngle > 60 && currentAngle < 120) {
-                currentAngle = 120;
-            } else if (currentAngle > 240 && currentAngle < 300) {
-                currentAngle = 300;
-            }
-        } else {
-            // we assume that server or devices is connected to only one router and there is only 1 server
-            assignRouterPosition(sw);
+            assignPositionsToSwitchDevices(sw, currentAngle);   
+        }
+        currentAngle = (currentAngle + potentialIncrement) % 360;
+        if (currentAngle > 60 && currentAngle < 120) {
+            currentAngle = 120;
+        } else if (currentAngle > 240 && currentAngle < 300) {
+            currentAngle = 300;
         }
     });
 }
@@ -507,6 +541,9 @@ function assignPositionsToSwitchDevices(sw, switchAngleToRouter) {
         const angleIndex = index % 2;
         const angleToUse = angle[angleIndex];
         Object.assign(device,  getPointByDegree(angleToUse, pipeLength, sw.x, sw.y));
+        if (device.type == 'switch') {
+            assignPositionsToSwitchDevices(device, angleToUse);
+        }
         angleIndex ? angle[angleIndex] -= angleDifference :  angle[angleIndex] += angleDifference;
         devicesAdded++;
         if (devicesAdded == accomodateableDevices) {
