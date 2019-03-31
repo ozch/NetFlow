@@ -62,7 +62,7 @@ var json_resp ={
                                 "ip" : "192.168.2.3"
                             },
                             {
-                                "type":"device",
+                                "type":"server",
                                 "mac" : "DBA6D7E41A6",
                                 "speed":"60",
                                 "ip" : "192.168.2.4"
@@ -475,7 +475,12 @@ function drawRouterChilds(router) {
         if (sw.type == "switch") {
             addSwitch(sw.x, sw.y, router.x, router.y);
             drawSwitchChilds(sw);
-        } else {
+        }
+        //added by me without testing
+        else if (sw.type == "device"){
+            addDevice(sw.x, sw.y, router.x, router.y);
+        }  
+        else {
             addServer(sw.x, sw.y, router.x, router.y);
         }
     });
@@ -486,7 +491,12 @@ function drawSwitchChilds(sw) {
         if (c.type == "switch") {
             addSwitch(c.x, c.y, sw.x, sw.y);
             drawSwitchChilds(c);
-        } else {
+        }
+        //added by me
+        else if (c.type == "server"){
+            addServer(c.x, c.y, sw.x, sw.y);
+        } 
+        else {
             addDevice(c.x, c.y, sw.x, sw.y);
         }
     });
