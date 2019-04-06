@@ -10,6 +10,7 @@ const flow_speed =0.2;
 //size of cube for animate
 const cube_size = 0.15;
 var timer;
+locations = { };
 var json_resp ={
     "1":{
         "type":"router",
@@ -27,32 +28,32 @@ var json_resp ={
                 "type":"device",
                 "mac" : "EBA6D7E41A34",
                 "speed":"1000",
-                "ip" : "192.168.1.2",
+                "ip" : "192.168.1.3",
             },
             {
                 "type":"switch",
                 "mac" : "EBA6D7E41A34",
                 "speed":"1000",
-                "ip" : "192.168.1.2",
+                "ip" : "192.168.1.4",
                 "child":
                 [
                     {
                         "type":"device",
                         "mac" : "EBA6D7E41A35",
                         "speed":"60",
-                        "ip" : "192.168.1.3"
+                        "ip" : "192.168.1.5"
                     },
                     {
                         "type":"device",
                         "mac" : "EBA6D7E41A6",
                         "speed":"60",
-                        "ip" : "192.168.1.4"
+                        "ip" : "192.168.1.6"
                     },
                     {
                         "type":"switch",
                         "mac" : "484AD7233FE7",
                         "speed":"1000",
-                        "ip" : "192.168.2.2",
+                        "ip" : "192.168.2.7",
                         "child":
                         [
                             {
@@ -73,29 +74,22 @@ var json_resp ={
             }
             
         ]
-    },
-
-    "2":{
-        "type":"router",
-        "mac" : "BA03ADEAE2A0",
-        "speed":"1000",
-        "ip" : ["192.168.1.1","192.168.2.1","192.168.3.1"],
-        "child":[
-            {
-                "type":"server",
-                "mac" : "EBA6D7E41A34",
-                "speed":"1000",
-                "ip" : "192.168.1.2",
-            },
-            {
-                "type":"device",
-                "mac" : "EBA6D7E41A34",
-                "speed":"1000",
-                "ip" : "192.168.1.2",
-            }
-        ]
     }
 };
+net_flow = [
+    {
+        "start" : "192.168.2.4",
+        "packets": 4,
+        "des_port": 22,
+        "path" : ["192.168.2.7","192.168.1.4","192.168.2.1","192.168.1.2"]
+    },
+    {
+        "start" : "192.168.2.4",
+        "packets": 4,
+        "des_port": 22,
+        "path" : ["192.168.2.7","192.168.1.4","192.168.2.1","192.168.1.2"]
+    }
+]
 //holds all the packet flow information which is underway
 var json_flow = {};
 
@@ -199,6 +193,12 @@ function movePackets(packets){
     }
 }
 
+function addToAnmimateFlow(){
+    for(let i = 0;i< net_flow.length;i++){
+        
+    }
+}
+
 //add color option
 function animateFlow(position_x,position_y,parent_x,parent_y,pipe,num_packets){
     var pgeometry = new THREE.BoxGeometry( 0.2, 0.2, 0.2 );
@@ -262,6 +262,7 @@ function getIPText(position_x,position_y,type,ip="None"){
     });
 }
 function addRouter(position_x,position_y,ip){
+    setLocations(ip,true,position_x,position_y);
     var base = getBase(position_x,position_y);
     var router = modelRouter(position_x,position_y);
     getIPText(position_x,position_y,1,ip.toString());
@@ -271,6 +272,7 @@ function addRouter(position_x,position_y,ip){
     scene.add( group );
 } 
 function addSwitch(position_x,position_y,parent_x,parent_y,ip){
+    setLocations(ip,false,position_x,position_y);
     var base = getBase(position_x,position_y);
     var switc = modelSwitch(position_x,position_y);
     getIPText(position_x,position_y,2,ip);
@@ -281,6 +283,7 @@ function addSwitch(position_x,position_y,parent_x,parent_y,ip){
     drawPipe(new THREE.Vector3(position_x,0,position_y),new THREE.Vector3(parent_x,0,parent_y),scene,1000);
 }
 function addDevice(position_x,position_y,parent_x,parent_y,ip,interface=""){
+    setLocations(ip,false,position_x,position_y);
     var base = getBase(position_x,position_y);
     getIPText(position_x,position_y,3,ip);
     var mtlLoader = new THREE.MTLLoader();
@@ -305,6 +308,7 @@ function addDevice(position_x,position_y,parent_x,parent_y,ip,interface=""){
     drawPipe(new THREE.Vector3(position_x,0,position_y),new THREE.Vector3(parent_x,0,parent_y),scene,100);
 }
 function addServer(position_x,position_y,parent_x,parent_y,ip,interface=""){
+    setLocations(ip,false,position_x,position_y);
     var text = getIPText(position_x,position_y,4,ip);
     //creating base 
     var base = getBase(position_x,position_y);
@@ -617,3 +621,12 @@ function getPointByDegree(degree, radius, cx, cy) {
     return point;
 }
 
+async function setLocations(ip,is_router,x,y){
+    if(is_router){
+        for(let i = 0; i < ip.length; i++){
+            locations[ip[i]] = [x,y];
+         }
+    }else{
+        locations[ip] = [x,y];
+    }
+}
