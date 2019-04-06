@@ -135,7 +135,7 @@ function init() {
     initLights();
     initTimer();
     assignPositions();
-    drawDevices();
+    drawDevices();    
     renderer.setSize( window.innerWidth, window.innerHeight );
     document.body.appendChild( renderer.domElement );
     var controls = new THREE.OrbitControls(camera, renderer.domElement);
@@ -226,26 +226,63 @@ function getBase(position_x,position_y){
     temp_mesh.position.z = position_y;
     return temp_mesh;
 }
-function addRouter(position_x,position_y){
+function getIPText(position_x,position_y,type,ip="None"){
+    var loader = new THREE.FontLoader();
+    loader.load('fonts/helvetiker_regular.typeface.json' ,function ( font ) {
+
+        var temp_geometry = new THREE.TextGeometry( ip, {
+    
+            font: font,
+    
+            size: 0.5,
+            height: 0.02,
+            curveSegments: 0.01,
+    
+            bevelThickness: 0.02,
+            bevelSize: 0.01,
+            bevelEnabled: true
+    
+        } );
+    var p = 0;
+    if(type == 1 || type == 2){
+        p = 3;
+    }else if(type == 3){
+        p=5;
+    }else if(type == 4){
+        p=8
+    }
+    var temp_material = new THREE.MeshBasicMaterial({color:0x525a63})
+    temp_geometry.center()
+    temp_mesh = new THREE.Mesh( temp_geometry, temp_material );
+    temp_mesh.position.x = position_x;
+    temp_mesh.position.y = p;
+    temp_mesh.position.z = position_y;
+
+    scene.add(temp_mesh)
+    });
+}
+function addRouter(position_x,position_y,ip){
     var base = getBase(position_x,position_y);
     var router = modelRouter(position_x,position_y);
+    getIPText(position_x,position_y,1,ip.toString());
     var group = new THREE.Group();
     group.add(base);
     group.add(router);
     scene.add( group );
-}
-
-function addSwitch(position_x,position_y,parent_x,parent_y){
+} 
+function addSwitch(position_x,position_y,parent_x,parent_y,ip){
     var base = getBase(position_x,position_y);
     var switc = modelSwitch(position_x,position_y);
+    getIPText(position_x,position_y,2,ip);
     var group = new THREE.Group();
     group.add(base);
     group.add(switc);
     scene.add(group);
     drawPipe(new THREE.Vector3(position_x,0,position_y),new THREE.Vector3(parent_x,0,parent_y),scene,1000);
 }
-function addDevice(position_x,position_y,parent_x,parent_y){
+function addDevice(position_x,position_y,parent_x,parent_y,ip,interface=""){
     var base = getBase(position_x,position_y);
+    getIPText(position_x,position_y,3,ip);
     var mtlLoader = new THREE.MTLLoader();
     mtlLoader.setBaseUrl( '/assets/models/' );
     mtlLoader.setPath( '/assets/models/' );
@@ -267,7 +304,8 @@ function addDevice(position_x,position_y,parent_x,parent_y){
     }); 
     drawPipe(new THREE.Vector3(position_x,0,position_y),new THREE.Vector3(parent_x,0,parent_y),scene,100);
 }
-function addServer(position_x,position_y,parent_x,parent_y){
+function addServer(position_x,position_y,parent_x,parent_y,ip,interface=""){
+    var text = getIPText(position_x,position_y,4,ip);
     //creating base 
     var base = getBase(position_x,position_y);
     //adding model server
@@ -462,7 +500,7 @@ function drawDevices() {
     let previousRouter;
     for (let key in json_resp) {
         let router = json_resp[key];
-        addRouter(router.x, router.y);
+        addRouter(router.x, router.y,router.ip);
         drawRouterChilds(router);
         if (previousRouter) {
             drawRouterPipe(previousRouter.x, previousRouter.y, router.x, router.y);
@@ -473,15 +511,15 @@ function drawDevices() {
 function drawRouterChilds(router) {
     router.child.forEach(function (sw) {
         if (sw.type == "switch") {
-            addSwitch(sw.x, sw.y, router.x, router.y);
+            addSwitch(sw.x, sw.y, router.x, router.y,sw.ip);
             drawSwitchChilds(sw);
         }
         //added by me without testing
         else if (sw.type == "device"){
-            addDevice(sw.x, sw.y, router.x, router.y);
+            addDevice(sw.x, sw.y, router.x, router.y,sw.ip);
         }  
         else {
-            addServer(sw.x, sw.y, router.x, router.y);
+            addServer(sw.x, sw.y, router.x, router.y,sw.ip);
         }
     });
 }
@@ -489,15 +527,15 @@ function drawRouterChilds(router) {
 function drawSwitchChilds(sw) {
     sw.child.forEach(function (c) {
         if (c.type == "switch") {
-            addSwitch(c.x, c.y, sw.x, sw.y);
+            addSwitch(c.x, c.y, sw.x, sw.y,c.ip);
             drawSwitchChilds(c);
         }
         //added by me
         else if (c.type == "server"){
-            addServer(c.x, c.y, sw.x, sw.y);
+            addServer(c.x, c.y, sw.x, sw.y,c.ip);
         } 
         else {
-            addDevice(c.x, c.y, sw.x, sw.y);
+            addDevice(c.x, c.y, sw.x, sw.y,c.ip);
         }
     });
 }
