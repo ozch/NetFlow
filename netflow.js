@@ -9,8 +9,10 @@ const s_height=1.2;
 const flow_speed =0.2;
 //size of cube for animate
 const cube_size = 0.15;
+//one packet  in animate equal to number of real packets
+const packet_equal = 2;
 var timer;
-locations = { };
+var locations = { };
 var json_resp ={
     "1":{
         "type":"router",
@@ -76,18 +78,12 @@ var json_resp ={
         ]
     }
 };
-net_flow = [
+var net_flow = [
     {
-        "start" : "192.168.2.4",
+        "start" : "192.168.2.3",
         "packets": 4,
-        "des_port": 22,
-        "path" : ["192.168.2.7","192.168.1.4","192.168.2.1","192.168.1.2"]
-    },
-    {
-        "start" : "192.168.2.4",
-        "packets": 4,
-        "des_port": 22,
-        "path" : ["192.168.2.7","192.168.1.4","192.168.2.1","192.168.1.2"]
+        "dest_port": 22,
+        "path" : ["192.168.2.7","192.168.2.4"]
     }
 ]
 //holds all the packet flow information which is underway
@@ -137,46 +133,95 @@ function init() {
 }
 function animate() {
     var timeElapsed = clock.getElapsedTime();
-    //console.log(json_flow.toString());
+
     controls.update();
-    for (var key in json_flow) {
-        //console.log(key);
-        if (json_flow.hasOwnProperty(key)) {
+    var json_flow_c = JSON.parse(JSON.stringify(json_flow))
+    for (var key in json_flow_c) {
+    
+        if (json_flow_c.hasOwnProperty(key)) {
             movePackets(key,timeElapsed);
         }
     }
     if ((new Date().getTime() - timer) > 400){
     timer = new Date().getTime();
+    net_flowx = [
+        /*{
+            "start" : "192.168.1.2",
+            "packets": 4,
+            "dest_port": 22,
+            "path" : ["192.168.1.1"]
+        },
+        {
+            "start" : "192.168.1.1",
+            "packets": 4,
+            "dest_port": 22,
+            "path" : ["192.168.1.4"]
+        },*/
+        {
+            "start" : "192.168.2.3",
+            "packets": 4,
+            "dest_port": 22,
+            "path" : ["192.168.2.7","192.168.2.4"]
+        }
+    ]
+    addToAnmimateFlow();
     }
     requestAnimationFrame( animate );
     
     renderer.render( scene, camera );
 }
 function getdistance(A,B){
-return Math.sqrt(Math.pow(A[0]-B[0],2)+Math.pow(A[1]-B[1],2))
+    vec1 = new THREE.Vector3(A[0],0,A[1])
+    vec2 = new THREE.Vector3(B[0],0,B[1])
+    var distance = vec1.distanceTo( vec2 );
+return distance
+//Math.sqrt(Math.pow(A[0]-B[0],2)+Math.pow(A[1]-B[1],2))
 }
 function isBoxRemovable(packet,packets){
-    var x1=packet.position.x
-    var x2=json_flow[packets]["x"]
+    var x1=packet.position.x;
+    var x2=json_flow[packets]["x"];
 
-    var y1=packet.position.z
-    var y2=json_flow[packets]["y"]
+    var y1=packet.position.z;
+    var y2=json_flow[packets]["y"];
     ans = getdistance([x1,y1],[x2,y2]);
     console.log(ans);
     if(ans<s_radious/3){
+        console.log("removeable")
         return true;
+        
     }
     else{
         return false;
     }
 }
 function movePackets(packets){
-    //console.log("packet_move_key-"+packets);
+   
     var packet = scene.getObjectByName(packets);  
-    var list = findCoordinate([packet.position.x,packet.position.z],[json_flow[packets]["x"],json_flow[packets]["y"]])
+    var list = findCoordinate([packet.position.x,packet.position.z],[json_flow[packets]["x"],json_flow[packets]["y"]]);
     if(isBoxRemovable(packet,packets)){
+        var x = json_flow[packets]["x"];
+        var y = json_flow[packets]["y"];
+        var dest_port = json_flow[packets]["dest_port"];
+        var path = json_flow[packets]["path"];
         removePacket(packet);
         delete json_flow[packets];
+        if(path.length != 0){
+            next_ip = path.shift();
+            console.log(next_ip);
+            animateFlow(x,y,next_ip[0],next_ip[1],100,path,dest_port);
+        }
+        
+        
+        
+        
+        /*}
+        else{
+            
+            json_flow[packets]["x"] = path.shift();
+            json_flow[packets]["y"] = path.shift();
+        }
+        */
+        
     }
     else{
         try {        
@@ -194,13 +239,29 @@ function movePackets(packets){
 }
 
 function addToAnmimateFlow(){
-    for(let i = 0;i< net_flow.length;i++){
+    while(net_flow.length!=0){
+        //getting coordinate of starting ip/device
+        var start_pos = locations[net_flow[0]["start"]];
+        console.log(start_pos);
+        var path = net_flow[0]["path"];
+        if(path.length>=1){
+            
+            var next_ip = path.shift();
+            console.log(next_ip);
+        }
+        var parent_pos = locations[next_ip];
+        var packets = Math.ceil(net_flow[0]["packets"]/packet_equal);
+        var dest_port = net_flow[0]["dest_port"];
+        for(let packet = 1;packet<=packets;packet++){
+            animateFlow(start_pos[0],start_pos[1],parent_pos[0],parent_pos[1],100,path,dest_port);
+            net_flow.shift();
+        }
         
     }
 }
 
 //add color option
-function animateFlow(position_x,position_y,parent_x,parent_y,pipe,num_packets){
+function animateFlow(position_x,position_y,parent_x,parent_y,pipe=100,path,dest_port){
     var pgeometry = new THREE.BoxGeometry( 0.2, 0.2, 0.2 );
     var pmaterial = new THREE.MeshNormalMaterial();
     var pmesh = new THREE.Mesh( pgeometry, pmaterial );
@@ -213,8 +274,26 @@ function animateFlow(position_x,position_y,parent_x,parent_y,pipe,num_packets){
     json_flow[pmesh.name]={};
     json_flow[pmesh.name]["x"]=parent_x;
     json_flow[pmesh.name]["y"]=parent_y;
-    json_flow[pmesh.name]["color"]="blue";
-    json_flow[pmesh.name]["packets"]=num_packets; 
+    json_flow[pmesh.name]["dest_port"]=dest_port;
+    json_flow[pmesh.name]["path"]=path;
+    //json_flow[pmesh.name]["packets"]=num_packets; 
+}
+function animateFlowRenew(position_x,position_y,parent_x,parent_y,pipe=100,path,dest_port){
+    var pgeometry = new THREE.BoxGeometry( 0.2, 0.2, 0.2 );
+    var pmaterial = new THREE.MeshNormalMaterial();
+    var pmesh = new THREE.Mesh( pgeometry, pmaterial );
+    pipe_rad = getPipeRadious(pipe);
+    pmesh.position.x = position_x+getCubeRandLocation(pipe_rad);
+    pmesh.position.y = 0+getCubeRandLocation(pipe_rad);
+    pmesh.position.z = position_y+getCubeRandLocation(pipe_rad);
+    scene.add(pmesh);
+    pmesh.name = generateUUID();
+    json_flow[pmesh.name]={};
+    json_flow[pmesh.name]["x"]=parent_x;
+    json_flow[pmesh.name]["y"]=parent_y;
+    json_flow[pmesh.name]["dest_port"]=dest_port;
+    json_flow[pmesh.name]["path"]=path;
+    //json_flow[pmesh.name]["packets"]=num_packets; 
 }
 function getBase(position_x,position_y){
     var temp_geometry =new THREE.CylinderGeometry( s_radious, s_radious, s_height, 64 );
@@ -436,7 +515,7 @@ function getPointInBetweenByLen(pointA, pointB, length) {
     return pointA.clone().add(dir);    
 }
 function removePacket(object) {
-    //console.log("packet_remove_key-"+object);
+   
     var selectedObject = scene.getObjectByName(object.name);
     scene.remove( selectedObject );
 }
@@ -470,7 +549,7 @@ function generateUUID() {
 function getCubeRandLocation(pipe_rad){
     var max = (pipe_rad/2);
     var min = -(pipe_rad/2);
-    //console.log(min);
+    
     return Math.random() * (max - min) + min; 
 }
 function getPipeRadious(speed){
@@ -557,9 +636,10 @@ function assignPositions() {
 
 function assignRouterPosition(router) {
     if (!routerAssignment) {
-        routerAssignment = {x: 0, y: 70 * Math.floor(Object.keys(json_resp).length / 2)};
+        //if the alocation mapping is not right change location of 'y: 20*' and '.y -=20' from 20 to something else
+        routerAssignment = {x: 0, y: 20 * Math.floor(Object.keys(json_resp).length / 2)};
     } else {
-        routerAssignment.y -= 70;
+        routerAssignment.y -= 20;
     }
     Object.assign(router, routerAssignment);
 }
@@ -586,7 +666,7 @@ function assignPositionsToSwitchDevices(sw, switchAngleToRouter) {
     const accomodateableDevices = 11;
     const angle = [switchAngleToRouter, switchAngleToRouter - angleDifference];
 
-    let pipeLength = 10;
+    let pipeLength = 15;
     let devicesAdded = 0;
     // add one device to one side to other on other
     sw.child.forEach(function (device, index) {
@@ -602,7 +682,7 @@ function assignPositionsToSwitchDevices(sw, switchAngleToRouter) {
             devicesAdded = 0;
             angle[0] = switchAngleToRouter + 15;
             angle[1] = switchAngleToRouter - 15;
-            pipeLength = 15;
+            pipeLength = 20;
         }
     });
 }
@@ -615,13 +695,13 @@ function getRouterSwitchCount(router) {
 function getPointByDegree(degree, radius, cx, cy) {
     const rad = degree * (Math.PI / 180);
     const point =  {
-        x: cx + (radius * Math.cos(rad)),
-        y: cy + (radius * Math.sin(rad))
+        x: Math.ceil(cx + (radius * Math.cos(rad))),
+        y: Math.ceil(cy + (radius * Math.sin(rad)))
     };
     return point;
 }
 
-async function setLocations(ip,is_router,x,y){
+function setLocations(ip,is_router,x,y){
     if(is_router){
         for(let i = 0; i < ip.length; i++){
             locations[ip[i]] = [x,y];
