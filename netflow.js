@@ -78,14 +78,78 @@ var json_resp ={
         ]
     }
 };
+var color = {
+    80: 'olive',//http
+    443: 'green',//https
+    20: 'purple',//ftp
+    21: 'purple',//ftp
+    22: 'red',//ssh
+    23: 'red',//tenet
+    38: 'red',//remote acces protocol
+    43: 'yellow',//whois
+    513: 'yellow',//who
+    25: 'teal',//STMP
+    53: 'yellow',//dns
+    109: 'teal',//mail pop
+    110: 'teal',//mail pop3
+    143: 'teal',//mail imap4
+    161: 'orange',//snmp
+    162: 'orange',//snmp trap
+    220: 'teal',//mail imap
+    336: 'teal',//mail smtp
+    989: 'purple',//ftp
+    990: 'purple',//ftp
+    993: 'teal',//mail imap
+    992: 'red',//tellnet
+    995: 'teal',//mail pop3 ssl
+    902: 'blue',//vmware server
+    3306: 'navy',//traffic
+    8000: 'black',//server
+};
 var net_flow = [
+    {
+        "start" : "192.168.1.3",
+        "packets": 4,
+        "dest_port": 8000,
+        "path" : ["192.168.1.1","192.168.1.4","192.168.2.7","192.168.2.4"]
+    },
+    {
+        "start" : "192.168.1.2",
+        "packets": 4,
+        "dest_port": 220,
+        "path" : ["192.168.1.1"]
+    },
+    {
+        "start" : "192.168.1.1",
+        "packets": 4,
+        "dest_port": 3306,
+        "path" : ["192.168.1.4"]
+    },
     {
         "start" : "192.168.2.3",
         "packets": 4,
-        "dest_port": 22,
+        "dest_port": 220,
+        "path" : ["192.168.2.7","192.168.2.4"]
+    },
+    {
+        "start" : "192.168.2.3",
+        "packets": 4,
+        "dest_port": 80,
+        "path" : ["192.168.2.7","192.168.2.4"]
+    },
+    {
+        "start" : "192.168.2.3",
+        "packets": 4,
+        "dest_port": 111,
+        "path" : ["192.168.2.7","192.168.2.4"]
+    },
+    {
+        "start" : "192.168.2.3",
+        "packets": 4,
+        "dest_port": 111,
         "path" : ["192.168.2.7","192.168.2.4"]
     }
-]
+];
 //holds all the packet flow information which is underway
 var json_flow = {};
 
@@ -145,7 +209,7 @@ function animate() {
     if ((new Date().getTime() - timer) > 400){
     timer = new Date().getTime();
     net_flowx = [
-        /*{
+        {
             "start" : "192.168.1.2",
             "packets": 4,
             "dest_port": 22,
@@ -156,14 +220,32 @@ function animate() {
             "packets": 4,
             "dest_port": 22,
             "path" : ["192.168.1.4"]
-        },*/
+        },
+        {
+            "start" : "192.168.2.3",
+            "packets": 4,
+            "dest_port": 22,
+            "path" : ["192.168.2.7","192.168.2.4"]
+        },
+        {
+            "start" : "192.168.2.3",
+            "packets": 4,
+            "dest_port": 22,
+            "path" : ["192.168.2.7","192.168.2.4"]
+        },
+        {
+            "start" : "192.168.2.3",
+            "packets": 4,
+            "dest_port": 22,
+            "path" : ["192.168.2.7","192.168.2.4"]
+        },
         {
             "start" : "192.168.2.3",
             "packets": 4,
             "dest_port": 22,
             "path" : ["192.168.2.7","192.168.2.4"]
         }
-    ]
+    ];
     addToAnmimateFlow();
     }
     requestAnimationFrame( animate );
@@ -199,16 +281,23 @@ function movePackets(packets){
     var packet = scene.getObjectByName(packets);  
     var list = findCoordinate([packet.position.x,packet.position.z],[json_flow[packets]["x"],json_flow[packets]["y"]]);
     if(isBoxRemovable(packet,packets)){
-        var x = json_flow[packets]["x"];
-        var y = json_flow[packets]["y"];
         var dest_port = json_flow[packets]["dest_port"];
+        var parent_ip = json_flow[packets]["parent_ip"];
+        var pack = json_flow[packets]["packets"];
         var path = json_flow[packets]["path"];
         removePacket(packet);
         delete json_flow[packets];
         if(path.length != 0){
-            next_ip = path.shift();
-            console.log(next_ip);
-            animateFlow(x,y,next_ip[0],next_ip[1],100,path,dest_port);
+            var re_entry = {
+                "start" : parent_ip,
+                "packets": pack,
+                "dest_port": dest_port,
+                "path" : path
+            };
+            net_flow.push(re_entry);
+            //next_ip = path.shift();
+            //console.log(next_ip);
+            //animateFlow(x,y,next_ip[0],next_ip[1],100,path,dest_port);
         }
         
         
@@ -238,7 +327,7 @@ function movePackets(packets){
     }
 }
 
-function addToAnmimateFlow(){
+async function addToAnmimateFlow(){
     while(net_flow.length!=0){
         //getting coordinate of starting ip/device
         var start_pos = locations[net_flow[0]["start"]];
@@ -250,20 +339,29 @@ function addToAnmimateFlow(){
             console.log(next_ip);
         }
         var parent_pos = locations[next_ip];
-        var packets = Math.ceil(net_flow[0]["packets"]/packet_equal);
+        var total_packets =net_flow[0]["packets"];
+        var packets = Math.ceil(total_packets/packet_equal);
         var dest_port = net_flow[0]["dest_port"];
         for(let packet = 1;packet<=packets;packet++){
-            animateFlow(start_pos[0],start_pos[1],parent_pos[0],parent_pos[1],100,path,dest_port);
+            await animateFlow(start_pos[0],start_pos[1],parent_pos[0],parent_pos[1],100,path,dest_port,next_ip,total_packets);
             net_flow.shift();
+            sleep(1400);
         }
         
     }
 }
 
 //add color option
-function animateFlow(position_x,position_y,parent_x,parent_y,pipe=100,path,dest_port){
+function animateFlow(position_x,position_y,parent_x,parent_y,pipe=100,path,dest_port,next_ip,total_packets){
     var pgeometry = new THREE.BoxGeometry( 0.2, 0.2, 0.2 );
-    var pmaterial = new THREE.MeshNormalMaterial();
+    
+    if (color.hasOwnProperty(dest_port)) {
+        
+        var pmaterial = new THREE.MeshBasicMaterial({color:color[dest_port]});
+    }else{
+        var pmaterial = new THREE.MeshNormalMaterial();
+    }
+    
     var pmesh = new THREE.Mesh( pgeometry, pmaterial );
     pipe_rad = getPipeRadious(pipe);
     pmesh.position.x = position_x+getCubeRandLocation(pipe_rad);
@@ -274,7 +372,9 @@ function animateFlow(position_x,position_y,parent_x,parent_y,pipe=100,path,dest_
     json_flow[pmesh.name]={};
     json_flow[pmesh.name]["x"]=parent_x;
     json_flow[pmesh.name]["y"]=parent_y;
+    json_flow[pmesh.name]["parent_ip"]=next_ip;
     json_flow[pmesh.name]["dest_port"]=dest_port;
+    json_flow[pmesh.name]["packets"]=total_packets;
     json_flow[pmesh.name]["path"]=path;
     //json_flow[pmesh.name]["packets"]=num_packets; 
 }
@@ -313,11 +413,11 @@ function getIPText(position_x,position_y,type,ip="None"){
     
             font: font,
     
-            size: 0.5,
-            height: 0.02,
+            size: 0.4,
+            height: 0.01,
             curveSegments: 0.01,
     
-            bevelThickness: 0.02,
+            bevelThickness: 0.005,
             bevelSize: 0.01,
             bevelEnabled: true
     
@@ -328,7 +428,7 @@ function getIPText(position_x,position_y,type,ip="None"){
     }else if(type == 3){
         p=5;
     }else if(type == 4){
-        p=8
+        p=6.5
     }
     var temp_material = new THREE.MeshBasicMaterial({color:0x525a63})
     temp_geometry.center()
@@ -710,3 +810,6 @@ function setLocations(ip,is_router,x,y){
         locations[ip] = [x,y];
     }
 }
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
