@@ -6,7 +6,7 @@ Javascript (WebGL/Three.JS) based network packet flow visualizer.
   <code>python -m http.server</code>
 - Packet flow analyzer and collector must be setup separately.
 - Packetflow data and network topology need to be fed using restful APIs. 
-- Json response template for both APIs is given in packetflow.js file.
+- Json response template for both APIs is given in netflow.js file.
 - If network topology is static you can give topology variable static value
 
 
